@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- PLACEHOLDER Linktrace logo. Real branding TBD. -->
+  <rect width="512" height="512" rx="112" fill="#111111"/>
+  <rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="#2dd4bf" stroke-width="8"/>
+  <text x="256" y="300" font-family="serif" font-size="250" font-weight="bold" fill="#e8e8e8" text-anchor="middle">循</text>
+  <text x="256" y="420" font-family="sans-serif" font-size="28" fill="#969696" text-anchor="middle">PLACEHOLDER</text>
+</svg>

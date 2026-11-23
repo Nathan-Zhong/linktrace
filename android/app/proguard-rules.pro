@@ -1,0 +1,8 @@
+-keepattributes *Annotation*, InnerClasses, Signature
+-keep,includedescriptorclasses class dev.linktrace.app.**$$serializer { *; }
+-keepclassmembers class dev.linktrace.app.** { *** Companion; }
+-keepclasseswithmembers class dev.linktrace.app.** { kotlinx.serialization.KSerializer serializer(...); }
+-dontwarn okhttp3.internal.platform.**
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
