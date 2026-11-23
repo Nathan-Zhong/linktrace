@@ -1,0 +1,39 @@
+name: Verify web app
+# Linktrace web verification only: syntax-check app.js, confirm every file
+# index.html references exists, validate the PWA manifest parses.
+# No deploy, no GitHub Pages publish.
+
+on:
+  push:
+    branches: [main, import/upstream-v2.2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check app.js syntax
+        run: node --check app.js
+      - name: Check referenced files exist
+        run: |
+          set -euo pipefail
+          # Files referenced by index.html (query strings stripped)
+          for f in icon.png logo.svg manifest.webmanifest styles.css app.js sw.js; do
+            test -f "$f" || { echo "::error::missing file: $f"; exit 1; }
+          done
+          # Icons referenced by the manifest
+          python3 -c "import json; m = json.load(open('manifest.webmanifest')); [print(i['src']) for i in m['icons']]" | while read -r icon; do
+            test -f "$icon" || { echo "::error::missing manifest icon: $icon"; exit 1; }
+          done
+          echo "all referenced files present"
+      - name: Validate PWA manifest
+        run: |
+          python3 -c "import json; m = json.load(open('manifest.webmanifest')); assert m['name'] == '循迹 Linktrace' and m['short_name'] == '循迹', m; print('manifest OK:', m['name'])"

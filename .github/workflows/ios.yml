@@ -1,0 +1,51 @@
+name: Build iOS IPA
+# Linktrace iOS verification: unsigned IPA built with raw swiftc, exactly as
+# upstream account-atlas builds it (no Xcode project, no package deps).
+# No signing, no App Store upload, no release.
+
+on:
+  push:
+    branches: [main, import/upstream-v2.2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build unsigned IPA
+        run: |
+          set -euo pipefail
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          APP=build/Payload/Atlas.app
+          mkdir -p "$APP/www" build
+          xcrun -sdk iphoneos swiftc -parse-as-library -O -swift-version 5 -target arm64-apple-ios17.0 -sdk "$SDK" native/*.swift -o "$APP/Atlas" 2>&1 | tee build/swiftc.log
+          test -f "$APP/Atlas"
+          rmdir "$APP/www"; cp -R icons "$APP/icons"; cp -R native/lproj/*.lproj "$APP/"; for f in "$APP"/*.lproj/InfoPlist.strings; do plutil -convert binary1 "$f"; done
+          VERSION=dev
+          BUILD=$(( $(git rev-list --count HEAD) + 1000 ))   # same build number as the Android versionCode
+          sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" native/Info.plist > "$APP/Info.plist"
+          xcrun actool ios/Assets.xcassets --compile "$APP" --platform iphoneos --minimum-deployment-target 17.0 \
+            --app-icon AppIcon --output-partial-info-plist build/partial.plist --target-device iphone
+          /usr/libexec/PlistBuddy -c "Merge build/partial.plist" "$APP/Info.plist"
+          for k in DTPlatformName:iphoneos DTSDKName:iphoneos$(xcrun --sdk iphoneos --show-sdk-version); do
+            /usr/libexec/PlistBuddy -c "Add :${k%%:*} string ${k#*:}" "$APP/Info.plist"; done
+          plutil -convert binary1 "$APP/Info.plist"
+          echo -n 'APPL????' > "$APP/PkgInfo"
+          cd build && zip -qX -D ../Linktrace.ipa "Payload/Atlas.app/Info.plist" && zip -qrXy ../Linktrace.ipa Payload -x "Payload/Atlas.app/Info.plist" && cd ..   # Info.plist first: sign tools that scan local headers find it even on a partial download
+          test "$(unzip -Z1 Linktrace.ipa | head -1)" = "Payload/Atlas.app/Info.plist"
+          ls -la Linktrace.ipa; file "$APP/Atlas"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Linktrace-ipa
+          path: Linktrace.ipa
+          retention-days: 14
