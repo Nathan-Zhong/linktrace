@@ -31,3 +31,19 @@ Gradle 守护进程 IPC 必须走 JVM 回环 TCP；本机 VM 的沙箱拦截了 
 
 - `native/*.swift` 12 个文件齐全；`native/Info.plist` 显示名/包名 = 循迹，Bundle ID = `dev.linktrace.app`（`CFBundleExecutable` 仍为 `Atlas`，与既定决策一致）
 - AppIcon 占位图有效 PNG 1024×1024；安卓图标同样有效，`icon-512.png` 512×512、`icon.png` 180×180
+
+## 更新：GitHub Actions CI 验证（2026-11-24 00:59，全部通过）
+
+用户 2026-11-24 00:54 选择走 GitHub Actions 验证。分支新增提交 `f33149a`（仅在 `import/upstream-v2.2` 上，main 未动），加入三份 Linktrace 工作流（`.github/workflows/web.yml`、`android.yml`、`ios.yml`，改编自上游工作流：只做构建验证，不发版、不签名、不部署、无 secrets、无上游引用）。
+
+三次运行全部成功（已从 API 独立核实状态与产物）：
+
+| 目标 | 运行 | 耗时 | 产物 |
+|---|---|---|---|
+| 网页版 | [Verify web app](https://github.com/Nathan-Zhong/linktrace/actions/runs/45221936326) | 8 秒 | 无（仅验证） |
+| Android | [Build Android APK](https://github.com/Nathan-Zhong/linktrace/actions/runs/45221935714) | 3 分 43 秒 | `Linktrace-apk`，18,694,220 字节（debug APK） |
+| iOS | [Build iOS IPA](https://github.com/Nathan-Zhong/linktrace/actions/runs/45221936150) | 2 分 19 秒 | `Linktrace-ipa`，2,657,718 字节（未签名 IPA） |
+
+与上游构建命令的差异（均有意为之）：Android 只跑 `./gradlew assembleDebug`（上游是签名 release + 单元测试）；iOS 的 swiftc 命令与上游逐字相同，只改了 IPA/产物名，`VERSION` 写死 `dev`；Web 只验证不部署。附带注解：Android 运行上有 action 版本过期提示（setup-java v4 建议迁到 v5 等），不影响结果，合并后长期维护 CI 时可顺手升级。
+
+结论：分支上的三端代码确实都能编出来；之前本机验证被沙箱挡住的问题云端不存在。合并决定待用户确认。
